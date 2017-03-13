@@ -17,8 +17,8 @@ function unix_array(n) {
 //add by hao have no idea end
 
 //add by hao sector begin
-//////////////qh
-qh.prototype.identify = function() {
+//////////////pc_disk
+pc_disk.prototype.identify = function() {
     function rh(sh, v) {
         th[sh * 2] = v & 0xff;
         th[sh * 2 + 1] = (v >> 8) & 0xff;
@@ -70,33 +70,33 @@ qh.prototype.identify = function() {
     rh(86, 0);
     rh(87, (1 << 14));
 };
-qh.prototype.set_signature = function() {
+pc_disk.prototype.set_signature = function() {
     this.select &= 0xf0;
     this.nsector = 1;
     this.sector = 1;
     this.lcyl = 0;
     this.hcyl = 0;
 };
-qh.prototype.abort_command = function() {
+pc_disk.prototype.abort_command = function() {
     this.status = 0x40 | 0x01;
     this.error = 0x04;
 };
-qh.prototype.set_irq = function() {
+pc_disk.prototype.set_irq = function() {
     if (! (this.cmd & 0x02)) {
         this.ide_if.set_irq_func(1);
     }
 };
-qh.prototype.transfer_start = function(wh, xh) {
+pc_disk.prototype.transfer_start = function(wh, xh) {
     this.end_transfer_func = xh;
     this.data_index = 0;
     this.data_end = wh;
 };
-qh.prototype.transfer_stop = function() {
+pc_disk.prototype.transfer_stop = function() {
     this.end_transfer_func = this.transfer_stop.bind(this);
     this.data_index = 0;
     this.data_end = 0;
 };
-qh.prototype.get_sector = function() {
+pc_disk.prototype.get_sector = function() {
     var yh;
     if (this.select & 0x40) {
         yh = ((this.select & 0x0f) << 24) | (this.hcyl << 16) | (this.lcyl << 8) | this.sector;
@@ -105,7 +105,7 @@ qh.prototype.get_sector = function() {
     }
     return yh;
 };
-qh.prototype.set_sector = function(yh) {
+pc_disk.prototype.set_sector = function(yh) {
     var zh, r;
     if (this.select & 0x40) {
         this.select = (this.select & 0xf0) | ((yh >> 24) & 0x0f);
@@ -121,7 +121,7 @@ qh.prototype.set_sector = function(yh) {
         this.sector = (r % this.sectors) + 1;
     }
 };
-qh.prototype.sector_read = function() {
+pc_disk.prototype.sector_read = function() {
     var yh, n, Mg;
     yh = this.get_sector();
     n = this.nsector;
@@ -139,7 +139,7 @@ qh.prototype.sector_read = function() {
         this.error = 0;
     }
 };
-qh.prototype.sector_read_cb = function() {
+pc_disk.prototype.sector_read_cb = function() {
     var n, Ah;
     n = this.io_nb_sectors;
     this.set_sector(this.get_sector() + n);
@@ -151,12 +151,12 @@ qh.prototype.sector_read_cb = function() {
     this.status = 0x40 | 0x10 | 0x08;
     this.error = 0;
 };
-qh.prototype.sector_read_cb_end = function() {
+pc_disk.prototype.sector_read_cb_end = function() {
     this.status = 0x40 | 0x10;
     this.error = 0;
     this.transfer_stop();
 };
-qh.prototype.sector_write_cb1 = function() {
+pc_disk.prototype.sector_write_cb1 = function() {
     var yh, Mg;
     this.transfer_stop();
     yh = this.get_sector();
@@ -170,7 +170,7 @@ qh.prototype.sector_write_cb1 = function() {
         this.status = 0x40 | 0x10 | 0x80;
     }
 };
-qh.prototype.sector_write_cb2 = function() {
+pc_disk.prototype.sector_write_cb2 = function() {
     var n;
     n = this.io_nb_sectors;
     this.set_sector(this.get_sector() + n);
@@ -186,7 +186,7 @@ qh.prototype.sector_write_cb2 = function() {
     }
     this.set_irq();
 };
-qh.prototype.sector_write = function() {
+pc_disk.prototype.sector_write = function() {
     var n;
     n = this.nsector;
     if (n == 0) n = 256;
@@ -195,11 +195,11 @@ qh.prototype.sector_write = function() {
     this.transfer_start(512 * n, this.sector_write_cb1.bind(this));
     this.status = 0x40 | 0x10 | 0x08;
 };
-qh.prototype.identify_cb = function() {
+pc_disk.prototype.identify_cb = function() {
     this.transfer_stop();
     this.status = 0x40;
 };
-qh.prototype.exec_cmd = function(ga) {
+pc_disk.prototype.exec_cmd = function(ga) {
     var n;
     switch (ga) {
     case 0xA1:
@@ -444,7 +444,7 @@ ide_driver.prototype.data_readl = function(fa) {
     return Mg;
 };
 
-function qh(Dh, Eh) {
+function pc_disk(Dh, Eh) {
     var Fh, Gh;
     this.ide_if = Dh;
     this.bs = Eh;
@@ -473,30 +473,31 @@ function qh(Dh, Eh) {
     this.req_nb_sectors = 0;
     this.io_nb_sectors = 0;
 }
-
-function ide_driver(Kg, fa, Hh, hh, Ih) {//ide0
-    var i, Jh;
-    this.set_irq_func = hh;
+//ide_driver(this, 0x1f0, 0x3f6, this.pic.set_irq.bind(this.pic, 14), block_list);
+//http://wiki.osdev.org/PCI_IDE_Controller
+function ide_driver(this_pc, fa, Hh, set_irq_function, block_list) {//ide0
+    var i, disk_drive;
+    this.set_irq_func = set_irq_function;
     this.drives = [];
     for (i = 0; i < 2; i++) {
-        if (Ih[i]) {
-            Jh = new qh(this, Ih[i]);//hao
+        if (block_list[i]) {
+            disk_drive = new pc_disk(this, block_list[i]);//hao
         } else {
-            Jh = null;
+            disk_drive = null;
         }
-        this.drives[i] = Jh;
+        this.drives[i] = disk_drive;
     }
     this.cur_drive = this.drives[0];
-    Kg.register_ioport_write(fa, 8, 1, this.ioport_write.bind(this));
-    Kg.register_ioport_read(fa, 8, 1, this.ioport_read.bind(this));
+    this_pc.register_ioport_write(fa, 8, 1, this.ioport_write.bind(this));
+    this_pc.register_ioport_read(fa, 8, 1, this.ioport_read.bind(this));
     if (Hh) {
-        Kg.register_ioport_read(Hh, 1, 1, this.status_read.bind(this));
-        Kg.register_ioport_write(Hh, 1, 1, this.cmd_write.bind(this));
+        this_pc.register_ioport_read(Hh, 1, 1, this.status_read.bind(this));
+        this_pc.register_ioport_write(Hh, 1, 1, this.cmd_write.bind(this));
     }
-    Kg.register_ioport_write(fa, 2, 2, this.data_writew.bind(this));
-    Kg.register_ioport_read(fa, 2, 2, this.data_readw.bind(this));
-    Kg.register_ioport_write(fa, 4, 4, this.data_writel.bind(this));
-    Kg.register_ioport_read(fa, 4, 4, this.data_readl.bind(this));
+    this_pc.register_ioport_write(fa, 2, 2, this.data_writew.bind(this));
+    this_pc.register_ioport_read(fa, 2, 2, this.data_readw.bind(this));
+    this_pc.register_ioport_write(fa, 4, 4, this.data_writel.bind(this));
+    this_pc.register_ioport_read(fa, 4, 4, this.data_readl.bind(this));
 }
 //add by hao ide0 end
 //add by hao read disk begin
@@ -661,16 +662,16 @@ create_block_list.prototype.write_async = function(yh, Yh, n, Zh) { //hao
 //add by hao read disk end
 
 //add by hao net0 begin
-ai.prototype.reset = function() {
+network_driver.prototype.reset = function() {
     this.isr = 0x80;
 };
-ai.prototype.update_irq = function() {
+network_driver.prototype.update_irq = function() {
     var bi;
     bi = (this.isr & this.imr) & 0x7f;
     if (bi) this.set_irq_func(1);
     else this.set_irq_func(0);
 };
-ai.prototype.compute_mcast_idx = function(ci) {
+network_driver.prototype.compute_mcast_idx = function(ci) {
     var di, ac, i, j, b;
     di = -1;
     for (i = 0; i < 6; i++) {
@@ -684,7 +685,7 @@ ai.prototype.compute_mcast_idx = function(ci) {
     }
     return di >>> 26;
 };
-ai.prototype.buffer_full = function() {
+network_driver.prototype.buffer_full = function() {
     var ei, Rb, fi;
     Rb = this.curpag << 8;
     fi = this.boundary << 8;
@@ -692,7 +693,7 @@ ai.prototype.buffer_full = function() {
     else ei = (this.stop - this.start) - (Rb - fi);
     return (ei < (1514 + 4));
 };
-ai.prototype.receive_packet = function(Yh) {//hao
+network_driver.prototype.receive_packet = function(Yh) {//hao
     // http://compbio.cs.toronto.edu/repos/snowflock/xen-3.0.3/tools/ioemu/hw/ne2000.c
     var gi, hi, ng, Rb, ii, wh, ji, fa;
     var ki, i;
@@ -772,7 +773,7 @@ ai.prototype.receive_packet = function(Yh) {//hao
     this.update_irq();
     console.log("ne2000: packet has been received");
 };
-ai.prototype.send_packet = function() {
+network_driver.prototype.send_packet = function() {
     var Rb;
     Rb = (this.tpsr << 8) & 0x7fff;
     if (Rb + this.tcnt <= (32 * 1024)) {
@@ -783,7 +784,7 @@ ai.prototype.send_packet = function() {
     this.cmd &= ~0x04;
     this.update_irq();
 };
-ai.prototype.ioport_write = function(fa, ga) {
+network_driver.prototype.ioport_write = function(fa, ga) {
     var ue, mi;
     fa &= 0xf;
     if (fa == 0x00) {
@@ -858,7 +859,7 @@ ai.prototype.ioport_write = function(fa, ga) {
         }
     }
 };
-ai.prototype.ioport_read = function(fa) {
+network_driver.prototype.ioport_read = function(fa) {
     var ue, mi, Mg;
     fa &= 0xf;
     if (fa == 0x00) {
@@ -922,7 +923,7 @@ ai.prototype.ioport_read = function(fa) {
     }
     return Mg;
 };
-ai.prototype.dma_update = function(ng) {
+network_driver.prototype.dma_update = function(ng) {
     this.rsar += ng;
     if (this.rsar == this.stop) this.rsar = this.start;
     if (this.rcnt <= ng) {
@@ -933,7 +934,7 @@ ai.prototype.dma_update = function(ng) {
         this.rcnt -= ng;
     }
 };
-ai.prototype.asic_ioport_write = function(fa, ga) {
+network_driver.prototype.asic_ioport_write = function(fa, ga) {
     var fa;
     if (this.rcnt == 0) return;
     if (this.dcfg & 0x01) {
@@ -951,7 +952,7 @@ ai.prototype.asic_ioport_write = function(fa, ga) {
         this.dma_update(1);
     }
 };
-ai.prototype.asic_ioport_read = function(fa) {
+network_driver.prototype.asic_ioport_read = function(fa) {
     var fa, Mg;
     if (this.dcfg & 0x01) {
         fa = (this.rsar & ~1) & 0x7fff;
@@ -964,7 +965,7 @@ ai.prototype.asic_ioport_read = function(fa) {
     }
     return Mg;
 };
-ai.prototype.asic_ioport_writel = function(fa, ga) {
+network_driver.prototype.asic_ioport_writel = function(fa, ga) {
     var fa;
     if (this.rcnt == 0) return;
     fa = (this.rsar & ~1) & 0x7fff;
@@ -979,7 +980,7 @@ ai.prototype.asic_ioport_writel = function(fa, ga) {
     }
     this.dma_update(4);
 };
-ai.prototype.asic_ioport_readl = function(fa) {
+network_driver.prototype.asic_ioport_readl = function(fa) {
     var fa, Mg;
     fa = (this.rsar & ~1) & 0x7fff;
     Mg = this.mem[fa] | (this.mem[fa + 1] << 8);
@@ -988,23 +989,23 @@ ai.prototype.asic_ioport_readl = function(fa) {
     this.dma_update(4);
     return Mg;
 };
-ai.prototype.reset_ioport_write = function(fa, ga) {};
-ai.prototype.reset_ioport_read = function(fa) {
+network_driver.prototype.reset_ioport_write = function(fa, ga) {};
+network_driver.prototype.reset_ioport_read = function(fa) {
     this.reset();
 };
 
-function ai(Kg, base, hh, ni, oi) {//hao network
+function network_driver(this_pc, base, hh, ni, oi) {//hao network
     var i;
     this.set_irq_func = hh;
     this.send_packet_func = oi;
-    Kg.register_ioport_write(base, 16, 1, this.ioport_write.bind(this));
-    Kg.register_ioport_read(base, 16, 1, this.ioport_read.bind(this));
-    Kg.register_ioport_write(base + 0x10, 1, 1, this.asic_ioport_write.bind(this));
-    Kg.register_ioport_read(base + 0x10, 1, 1, this.asic_ioport_read.bind(this));
-    Kg.register_ioport_write(base + 0x10, 2, 2, this.asic_ioport_write.bind(this));
-    Kg.register_ioport_read(base + 0x10, 2, 2, this.asic_ioport_read.bind(this));
-    Kg.register_ioport_write(base + 0x1f, 1, 1, this.reset_ioport_write.bind(this));
-    Kg.register_ioport_read(base + 0x1f, 1, 1, this.reset_ioport_read.bind(this));
+    this_pc.register_ioport_write(base, 16, 1, this.ioport_write.bind(this));
+    this_pc.register_ioport_read(base, 16, 1, this.ioport_read.bind(this));
+    this_pc.register_ioport_write(base + 0x10, 1, 1, this.asic_ioport_write.bind(this));
+    this_pc.register_ioport_read(base + 0x10, 1, 1, this.asic_ioport_read.bind(this));
+    this_pc.register_ioport_write(base + 0x10, 2, 2, this.asic_ioport_write.bind(this));
+    this_pc.register_ioport_read(base + 0x10, 2, 2, this.asic_ioport_read.bind(this));
+    this_pc.register_ioport_write(base + 0x1f, 1, 1, this.reset_ioport_write.bind(this));
+    this_pc.register_ioport_read(base + 0x1f, 1, 1, this.reset_ioport_read.bind(this));
     this.cmd = 0;
     this.start = 0;
     this.stop = 0;
@@ -1032,9 +1033,9 @@ function ai(Kg, base, hh, ni, oi) {//hao network
     }
     this.reset();
 }
-function pi(Yh, Rb, ng) {//hao net0
+function net_send_packet(Yh, Rb, ng) {//hao net0
     // eth0: sending ng bytes, starting from offset Rb in memory block Yh
-    console.warn("ne2000: send packet len=" + ng);
+    console.error("hao net0 net_send_packet ne2000: send packet len=" + ng);//not used ? hao
     if (0) {
         var withPrefix = Yh.subarray(Rb - 2, Rb + ng); // provide 2 more prefix bytes. we'll probably start with Rb=16384 anyway.
         withPrefix[0] = parseInt(parseInt(ng) / 256);
@@ -1084,9 +1085,10 @@ function PCEmulator(params) {
         }
     }
     this.ide0 = new ide_driver(this, 0x1f0, 0x3f6, this.pic.set_irq.bind(this.pic, 14), block_list); //hao
-    this.net0 = new ai(this, 0x300, this.pic.set_irq.bind(this.pic, 9), [0x62, 0xb9, 0xe8, 0x01, 0x02,
+    this.net0 = new network_driver(this, 0x300, this.pic.set_irq.bind(this.pic, 9), [0x62, 0xb9, 0xe8, 0x01, 0x02,
     /*0x03*/
-    new Date().getTime() % 255], pi);//hao
+    new Date().getTime() % 255], net_send_packet);//hao
+    
 // add by hao for ide and net end
     if (params.clipboard_get && params.clipboard_set) {
         this.jsclipboard = new clipboard_device(this, 0x3c0, params.clipboard_get, params.clipboard_set, params.get_boot_time);

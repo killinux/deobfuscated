@@ -36,7 +36,7 @@ var net_handler = function net_handler(str)
     document.getElementById("test_serial2").style.backgroundColor = "yellow";
     pc.serial2.send_chars(str);
 
-    if (1)//hao show network tcpdump
+    if (0)//hao show network tcpdump
     {
         var data = str.slice(2);
         //console.log("receiving " + data);

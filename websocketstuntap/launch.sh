@@ -11,6 +11,7 @@
 #brctl addbr br1
 #brctl stp br1 on
 #ip link set br1 promisc on 
+#ip link set br1 up
 #ifconfig br1 10.0.2.1 netmask 255.0.0.0 up
 #
 #dnsmasq --strict-order --except-interface=lo --interface=br1 --listen-address=10.0.2.1 --bind-interfaces  --dhcp-range=10.0.2.100,10.0.2.254 --conf-file=""  --pid-file=/var/run/qemu-dhcp-br1.pid  --dhcp-leasefile=/var/run/qemu-dhcp-br1.leases --dhcp-no-override

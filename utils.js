@@ -47,7 +47,7 @@ function include(filename)
  * the implementation. */
 function load_binary_remote(url, cb)
 {
-    console.log("utils.js---load_binary_remote:"+url);
+    //console.log("utils.js---load_binary_remote:"+url);
     var req, typed_array, is_ie;
 
     //console.log("load_binary: url=" + url);
