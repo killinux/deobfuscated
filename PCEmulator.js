@@ -779,8 +779,8 @@ network_driver.prototype.send_packet = function() {
     if (Rb + this.tcnt <= (32 * 1024)) {
         this.send_packet_func(this.mem, Rb, this.tcnt);
     }
-    this.tsr = 0x01;
-    this.isr |= 0x02;
+    this.tsr = 0x01;//hao (Terminate and Stay Resident Program) ?
+    this.isr |= 0x02;//Interrupt Service Routines 
     this.cmd &= ~0x04;
     this.update_irq();
 };
