@@ -24,19 +24,19 @@ pc_disk.prototype.identify = function() {
         th[sh * 2 + 1] = (v >> 8) & 0xff;
     }
 
-    function uh(sh, na, ng) {
+    function uh(begin, str, len) {
         var i, v;
-        for (i = 0; i < ng; i++) {
-            if (i < na.length) {
-                v = na.charCodeAt(i) & 0xff;
+        for (i = 0; i < len; i++) {
+            if (i < str.length) {
+                v = str.charCodeAt(i) & 0xff;
             } else {
                 v = 32;
             }
-            th[sh * 2 + (i ^ 1)] = v;
+            th[begin * 2 + (i ^ 1)] = v;
         }
     }
     var th, i, vh;
-    th = this.io_buffer;
+    th = this.io_buffer;//hao importent
     for (i = 0; i < 512; i++) th[i] = 0;
     rh(0, 0x0040);
     rh(1, this.cylinders);
@@ -47,7 +47,7 @@ pc_disk.prototype.identify = function() {
     rh(20, 3);
     rh(21, 512);
     rh(22, 4);
-    uh(27, "JSLinux HARDDISK", 40); //hao
+    uh(27, "JSLinux HARDDISK", 40); //hao display memeray?
     rh(47, 0x8000 | 128);
     rh(48, 0);
     rh(49, 1 << 9);
@@ -444,11 +444,11 @@ ide_driver.prototype.data_readl = function(fa) {
     return Mg;
 };
 
-function pc_disk(Dh, Eh) {
+function pc_disk(that, b_list) {
     var Fh, Gh;
-    this.ide_if = Dh;
-    this.bs = Eh;
-    Gh = Eh.get_sector_count();
+    this.ide_if = that;
+    this.bs = b_list;
+    Gh = b_list.get_sector_count();
     Fh = Gh / (16 * 63);
     if (Fh > 16383) Fh = 16383;
     else if (Fh < 2) Fh = 2;
@@ -733,7 +733,7 @@ network_driver.prototype.receive_packet = function(Yh) {//hao
     }
     if (wh < 60) wh = 60; // grow min buffer
     Rb = this.curpag << 8;
-    ji = this.mem;
+    ji = this.mem;//hao 
     gi = wh + 4; // 4 bytes for header
     hi = Rb + ((gi + 4 + 255) & ~0xff); // address for next packet
     if (hi >= this.stop) hi -= (this.stop - this.start);
@@ -994,10 +994,10 @@ network_driver.prototype.reset_ioport_read = function(fa) {
     this.reset();
 };
 
-function network_driver(this_pc, base, hh, ni, oi) {//hao network
+function network_driver(this_pc, base, set_irq_function, arr, send_function) {//hao network
     var i;
-    this.set_irq_func = hh;
-    this.send_packet_func = oi;
+    this.set_irq_func = set_irq_function;
+    this.send_packet_func = send_function;
     this_pc.register_ioport_write(base, 16, 1, this.ioport_write.bind(this));
     this_pc.register_ioport_read(base, 16, 1, this.ioport_read.bind(this));
     this_pc.register_ioport_write(base + 0x10, 1, 1, this.asic_ioport_write.bind(this));
@@ -1024,7 +1024,7 @@ function network_driver(this_pc, base, hh, ni, oi) {//hao network
     this.curpag = 0;
     this.mult = unix_array(8);
     this.mem = unix_array((32 * 1024));
-    for (i = 0; i < 6; i++) this.mem[i] = ni[i];
+    for (i = 0; i < 6; i++) this.mem[i] = arr[i];
     this.mem[14] = 0x57;
     this.mem[15] = 0x57;
     for (i = 15; i >= 0; i--) {
@@ -1033,24 +1033,25 @@ function network_driver(this_pc, base, hh, ni, oi) {//hao network
     }
     this.reset();
 }
-function net_send_packet(Yh, Rb, ng) {//hao net0
+//function net_send_packet(Yh, Rb, ng) {//hao net0
+function net_send_packet(mem_block, send_offset, send_bytes) {//hao net0
     // eth0: sending ng bytes, starting from offset Rb in memory block Yh
-    console.error("hao net0 net_send_packet ne2000: send packet len=" + ng);//not used ? hao
+    console.error("hao net0 net_send_packet ne2000: send packet len=" + send_bytes);//not used ? hao
     if (0) {
-        var withPrefix = Yh.subarray(Rb - 2, Rb + ng); // provide 2 more prefix bytes. we'll probably start with Rb=16384 anyway.
-        withPrefix[0] = parseInt(parseInt(ng) / 256);
-        withPrefix[1] = parseInt(ng) % 256;
+        var withPrefix = mem_block.subarray(send_offset - 2, send_offset + ng); // provide 2 more prefix bytes. we'll probably start with Rb=16384 anyway.
+        withPrefix[0] = parseInt(parseInt(send_bytes) / 256);
+        withPrefix[1] = parseInt(send_bytes) % 256;
         tuntap_sendData(withPrefix);
     } else {
         // TODO: tuntap_sendData() should handle Uint8Array() too.
         var withPrefix = "";
-        withPrefix += String.fromCharCode(parseInt(parseInt(ng) / 256));
-        withPrefix += String.fromCharCode(parseInt(ng) % 256);
+        withPrefix += String.fromCharCode(parseInt(parseInt(send_bytes) / 256));
+        withPrefix += String.fromCharCode(parseInt(send_bytes) % 256);
 
-        tcpdump_uint8array(Yh.subarray(Rb, Rb + ng));
+        tcpdump_uint8array(mem_block.subarray(send_offset, send_offset + send_bytes));
 
-        for (var i = Rb; i < Rb + ng; i++) {
-            withPrefix += String.fromCharCode(Yh[i]);
+        for (var i = send_offset; i < send_offset + send_bytes; i++) {
+            withPrefix += String.fromCharCode(mem_block[i]);
         }
         tuntap_sendData(withPrefix);
     }

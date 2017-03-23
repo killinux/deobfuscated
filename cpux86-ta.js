@@ -513,7 +513,7 @@ CPU_X86.prototype.dump = function() {
             str += " ";
         }
     }
-    descriptor_table = this.gdt;
+    descriptor_table = this.gdt;//hao 
     str = "GDT=     " + _4_bytes_(descriptor_table.base) + " " + _4_bytes_(descriptor_table.limit) + "      ";
     descriptor_table = this.idt;
     str += "IDT=     " + _4_bytes_(descriptor_table.base) + " " + _4_bytes_(descriptor_table.limit);

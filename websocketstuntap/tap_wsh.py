@@ -36,7 +36,7 @@ def web_socket_transfer_data(request):
     while True:
         inputSockets = socketlist.keys()
         #print("inputSockets length:"+ str(len(inputSockets)))
-        print("inputSockets :"+ str(inputSockets))
+        #print("inputSockets :"+ str(inputSockets))
         outputSockets = []
         errorSockets = []
         (inputReady, outputReady, errorOccurred) = select.select(inputSockets, outputSockets, errorSockets, 1)
