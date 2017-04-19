@@ -4823,6 +4823,8 @@ CPU_X86.prototype.exec_internal = function(N_cycles, interrupt) {
         }
         return 1;
     }
+//hao: Verify a Segment for Reading or Writing
+//https://pdos.csail.mit.edu/6.828/2005/readings/i386/VERR.htm
     function op_VERR_VERW(selector, is_verw) {
         var z;
         z = segment_isnt_accessible(selector, is_verw);
