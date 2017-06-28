@@ -21,4 +21,6 @@
 #virtualenv mysite
 #source mysite/bin/activate
 #pip install mod_pywebsocket
+kill `pidof python`
+source /opt/qemu/deobfuscated/websocketstuntap/mysite/bin/activate
 python -m mod_pywebsocket.standalone -d . --log-level=info -p 3000
