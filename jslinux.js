@@ -12,7 +12,7 @@ var term, pc, boot_start_time, init_state;
 
 function term_start()
 {
-    term = new Term(80, 30, term_handler);
+    term = new Term(80, 130, term_handler);
 
     term.open();
 }
@@ -204,7 +204,8 @@ function start(kernel_name)
     init_state.params = params;
 
     if (!kernel_name)
-        kernel_name = "vmlinux-2.6.20.bin";
+        //kernel_name = "vmlinux-2.6.20.bin";
+        kernel_name = "vmlinux26.bin";
     pc.load_binary(kernel_name, 0x00100000, start2);
     //console.log("start 2");
 }
