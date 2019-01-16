@@ -32,8 +32,11 @@ function term_handler(str)
 var net_handler = function net_handler(str)
 {
     // FIXME: name this more appropriately.
-    console.error("netrecv " + window.btoa(str));
+    //console.error("netrecv " + window.btoa(str));
+    console.error("net_handler: " + window.btoa(str));
+    console.log("net_handler len: " + window.btoa(str).length);
     document.getElementById("test_serial2").style.backgroundColor = "yellow";
+    document.getElementById("test_serial2").innerText = window.btoa(str);
     pc.serial2.send_chars(str);
 
     if (0)//hao show network tcpdump
@@ -85,7 +88,15 @@ try {
 			hexy(data[9]) + ":" +
 			hexy(data[10]) + ":" +
 			hexy(data[11]));
-	console.log("type: " + hexy(data[12]) + hexy(data[13]) + (data[12] == 8 && data[13] == 6 ? "(arp)" : data[12] == 8 && data[13] == 0 ? "(ip)" : "(?)"));
+    //hao: http://support.huawei.com/enterprise/docinforeader!loadDocument1.action?contentId=DOC1000004409&partNo=10042
+//---add by hao begin
+    var thisprotocol = "?";
+    if(hexy(data[12]) == 86 && hexy(data[13]) == "dd"){
+        thisprotocol = "IPV6";
+    }
+//---add by hao end
+	//console.log("type: " + hexy(data[12]) + hexy(data[13]) + (data[12] == 8 && data[13] == 6 ? "(arp)" : data[12] == 8 && data[13] == 0 ? "(ip)" : "(?)"));
+	console.log("type: " + hexy(data[12]) + hexy(data[13]) + (data[12] == 8 && data[13] == 6 ? "(arp)" : data[12] == 8 && data[13] == 0 ? "(ip)" : "("+thisprotocol+")"));
 
 	if (data[12] == 8 && data[13] == 6) {
 		// arp
@@ -167,19 +178,44 @@ function start(kernel_name)
     	buffer += ar[ar.length-1];
     	return true;
 	    */
+        //console.error("SENDING DATA OUT all  hao: " + window.btoa(data));
+
         buffer += data;
+        //console.error("SENDING DATA OUT all  hao: " + window.btoa(buffer));
         clearTimeout(transmitter);
         if(buffer.length > tuntap_bufferSize){
-            console.log("SENDING DATA OUT sz: " + buffer);
+            console.error("SENDING DATA OUT sz: " + window.btoa(buffer));
             tuntap_sendData(buffer);
             buffer = "";
         }
         transmitter = setTimeout(function(){
-            console.log("SENDING DATA OUT tm: " + buffer);
+            console.error("SENDING DATA OUT tm hao: " + window.btoa(buffer) +",length:"+window.btoa(buffer).length);
+//--------add by hao begin----------由于ttyS1的buffer的限制，这里要再看下buffer是如何分割的
+            var str = buffer;
+            if (0)//hao show network tcpdump
+            {
+                var data = str.slice(2);
+                //console.log("receiving " + data);
+                //pc.net0.receive_packet(data);
+            }
+            else
+            {
+                //console.log("receiving " + str.slice(2));
+                var data = new Uint8Array(str.length-2);
+                for(var i = 2; i < str.length; i++)
+                {
+                    data[i-2] = str.charCodeAt(i);
+                }
+                tcpdump_uint8array(data);
+                //pc.net0.receive_packet(data);
+            }
+//--------add by hao end ----/
             tuntap_sendData(buffer);
             buffer = "";
         }, tuntap_bufferTimeout);
-        /*tuntap_sendData(data);*/
+        //console.error("send---->");
+        //tcpdump_uint8array(data);
+       /* tuntap_sendData(data);*/
     }
 
     /* memory size (in bytes) */

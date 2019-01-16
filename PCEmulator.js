@@ -699,7 +699,9 @@ network_driver.prototype.receive_packet = function(Yh) {//hao
     var ki, i;
 
     wh = Yh.length;
-    console.log("ne2000: receiving " + wh + " bytes");
+    console.log("ne2000: receiving " + wh + " bytes"+" .maybe this is no use");
+    //console.log("this.cmd:"+this.cmd);
+    //console.log("this.buffer_full:"+this.buffer_full());
     if (this.cmd & 0x01 || this.buffer_full() || wh < 6) {
         console.log("ne2000: either stop command, or buffer full, or received less than 6 bytes");
         return;
@@ -1037,6 +1039,7 @@ function network_driver(this_pc, base, set_irq_function, arr, send_function) {//
 function net_send_packet(mem_block, send_offset, send_bytes) {//hao net0
     // eth0: sending ng bytes, starting from offset Rb in memory block Yh
     console.error("hao net0 net_send_packet ne2000: send packet len=" + send_bytes);//not used ? hao
+    //2019 01 14 net0 is only for print the protocal ,and serials2 is the real network ,tapper.c is used for ttyS1 and tap0, serials2 is used for ttyS1.
     if (0) {
         var withPrefix = mem_block.subarray(send_offset - 2, send_offset + ng); // provide 2 more prefix bytes. we'll probably start with Rb=16384 anyway.
         withPrefix[0] = parseInt(parseInt(send_bytes) / 256);

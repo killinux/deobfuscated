@@ -57,8 +57,7 @@ function get_shell(){
 
 <script type="text/javascript">
 	tuntap_bufferSize = 100;
-	//tuntap_bufferTimeout = 100;
-	tuntap_bufferTimeout = 10;
+	tuntap_bufferTimeout = 100;//hao: this is must not too small
 	function tuntap_sendData(data){
         //if(tuntapZXMPP_talkTo && tuntapZXMPP_talkTo.length){
 		//	tuntapZXMPP_sendData(tuntapZXMPP_talkTo, data);
